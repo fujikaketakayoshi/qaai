@@ -6,12 +6,14 @@ const sequelize = new Sequelize({
 	username:'fjkk',
 	password: null,
 	host:'127.0.0.1',
-	dialect:'mysql'
+	dialect:'mysql',
+	timezone:'+09:00'
 });
 const Question = sequelize.define('Question', {
 	url: {
 		type: DataTypes.STRING,
-		allowNull: false
+		allowNull: false,
+		unique: true
 	},
 	title: {
 		type: DataTypes.TEXT
@@ -41,10 +43,11 @@ const questions_url = 'https://okwave.jp/list/new_question';
 		return list.map(data => data.href);
 	});
 	
-	qa_urls.map(url => Question.create({url: url}));
+	qa_urls.map((url) => {
+	      const question = Question.create({url: url}, {ignoreDuplicates: true});
+	});
 	
 //	console.log(qa_urls);
-	
 	
 	await browser.close();
 })();
