@@ -4,7 +4,7 @@ import {sequelize, Question} from './config.mjs';
 const questions_url = 'https://okwave.jp/list/new_question';
 
 
-(async () => {
+const set_qa_urls = async () => {
 	const browser = await puppeteer.launch({
 		headless: true
 	});
@@ -19,4 +19,6 @@ const questions_url = 'https://okwave.jp/list/new_question';
 	});
 	
 	await browser.close();
-})();
+};
+
+set_qa_urls();
