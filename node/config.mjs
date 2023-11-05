@@ -9,6 +9,8 @@ const sequelize = new Sequelize({
 	timezone: '+09:00'
 });
 
+const Op = Sequelize.Op;
+
 const Question = sequelize.define('Question', {
 	url: {
 		type: DataTypes.STRING,
@@ -26,4 +28,4 @@ const Question = sequelize.define('Question', {
 await Question.sync();
 //await Question.sync({force: true});
 
-export {sequelize, Question};
+export {sequelize, Question, Op};
