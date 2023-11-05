@@ -59,6 +59,9 @@ const set_qa_title_body = async () => {
 	if (title && body) {
 		q.title = title.trim();
 		q.body = body.trim();
+	} else {
+		q.updatedAt = new Date();
+		q.changed('updatedAt', true);
 	}
 	q.save();
 };
