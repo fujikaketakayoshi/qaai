@@ -1,7 +1,16 @@
 import puppeteer from 'puppeteer';
+import cron from 'node-cron';
 import {sequelize, Question, Op} from './config.mjs';
 
 const questions_url = 'https://okwave.jp/list/new_question';
+
+cron.schedule('*/15 * * * *', () => {
+  console.log(set_qa_urls());
+});
+
+cron.schedule('* * * * *', () => {
+  console.log(set_qa_title_body());
+});
 
 
 const set_qa_urls = async () => {
@@ -9,6 +18,16 @@ const set_qa_urls = async () => {
 		headless: true
 	});
 	const page = await browser.newPage();
+	await page.setDefaultNavigationTimeout(0);
+	await page.setRequestInterception(true);
+    page.on('request', request => {
+        const requestType = request.resourceType();
+        if(requestType === 'document') {  // 文書ファイルのみOK
+            request.continue(); // 続けて読み込む
+        } else {
+            request.abort();  // 外部ファイルは読み込まない
+        }
+    });
 	await page.goto(questions_url);
 	const qa_urls = await page.$$eval('.link_qa', list => {
 		return list.map(data => data.href);
@@ -18,6 +37,7 @@ const set_qa_urls = async () => {
 	qa_urls.map((url) => {
 	      const question = Question.create({url: url}, {ignoreDuplicates: true});
 	});
+	return qa_urls.count();
 };
 
 const set_qa_title_body = async () => {
@@ -30,7 +50,7 @@ const set_qa_title_body = async () => {
 		}
 	});
 	
-	console.log(q.url);
+	if ( !q ) return false;
 	
 	const browser = await puppeteer.launch({
 		headless: true
@@ -59,14 +79,16 @@ const set_qa_title_body = async () => {
 	if (title && body) {
 		q.title = title.trim();
 		q.body = body.trim();
+		q.save();
+		return true;
 	} else {
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
+		q.save();
+		return false;
 	}
-	q.save();
 };
 
 
-
 //set_qa_urls();
-set_qa_title_body();
+//set_qa_title_body();

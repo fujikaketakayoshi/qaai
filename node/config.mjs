@@ -6,7 +6,8 @@ const sequelize = new Sequelize({
 	password: null,
 	host: '127.0.0.1',
 	dialect: 'mysql',
-	timezone: '+09:00'
+	timezone: '+09:00',
+	logging: false
 });
 
 const Op = Sequelize.Op;
