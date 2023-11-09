@@ -15,7 +15,7 @@ cron.schedule('* * * * *', () => {
 
 const set_qa_urls = async () => {
 	const browser = await puppeteer.launch({
-		headless: true
+		headless: 'new'
 	});
 	const page = await browser.newPage();
 	await page.setDefaultNavigationTimeout(0);
@@ -55,7 +55,7 @@ const set_qa_title_body = async () => {
 	if ( !q ) return false;
 	
 	const browser = await puppeteer.launch({
-		headless: true
+		headless: 'new'
 	});
 	const page = await browser.newPage();
 	await page.setDefaultNavigationTimeout(0);
