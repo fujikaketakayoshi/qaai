@@ -5,11 +5,11 @@ import {sequelize, Question, Op} from './config.mjs';
 const questions_url = 'https://okwave.jp/list/new_question';
 
 cron.schedule('*/15 * * * *', () => {
-  console.log('set_qa_urls: ' + set_qa_urls());
+	set_qa_urls();
 });
 
 cron.schedule('* * * * *', () => {
-  console.log('set_qa_title_body: ' + set_qa_title_body());
+	set_qa_title_body();
 });
 
 
@@ -37,7 +37,7 @@ const set_qa_urls = async () => {
 	qa_urls.map((url) => {
 	      const question = Question.create({url: url}, {ignoreDuplicates: true});
 	});
-	return qa_urls.count();
+	console.log('[set_qa_urls] set_url_num:' + qa_urls.length);
 };
 
 const set_qa_title_body = async () => {
@@ -80,12 +80,13 @@ const set_qa_title_body = async () => {
 		q.title = title.trim();
 		q.body = body.trim();
 		q.save();
-		return true;
+		console.log('[set_qa_title_body] id:' + q.id + ' success.');
+
 	} else {
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
 		q.save();
-		return false;
+		console.log('[set_qa_title_body] id:' + q.id + ' fail.');
 	}
 };
 
