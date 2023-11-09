@@ -5,11 +5,11 @@ import {sequelize, Question, Op} from './config.mjs';
 const questions_url = 'https://okwave.jp/list/new_question';
 
 cron.schedule('*/15 * * * *', () => {
-  console.log(set_qa_urls());
+  console.log('set_qa_urls: ' + set_qa_urls());
 });
 
 cron.schedule('* * * * *', () => {
-  console.log(set_qa_title_body());
+  console.log('set_qa_title_body: ' + set_qa_title_body());
 });
 
 
