@@ -34,10 +34,12 @@ const set_qa_urls = async () => {
 	});
 	await browser.close();
 	
+	let qa_num = 0;
 	qa_urls.map((url) => {
 	      const question = Question.create({url: url}, {ignoreDuplicates: true});
+	      if ( question.isNewRecord ) qa_num++;
 	});
-	console.log('[set_qa_urls] set_url_num:' + qa_urls.length);
+	console.log('[set_qa_urls] set_url_num:' + qa_num);
 };
 
 const set_qa_title_body = async () => {
