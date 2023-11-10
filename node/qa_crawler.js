@@ -4,13 +4,13 @@ import {sequelize, Question, Op} from './config.mjs';
 
 const questions_url = 'https://okwave.jp/list/new_question';
 
-//cron.schedule('* * * * *', () => {
-//	set_qa_urls();
-//});
-//
-//cron.schedule('* * * * *', () => {
-//	set_qa_title_body();
-//});
+cron.schedule('*/15 * * * *', () => {
+	set_qa_urls();
+});
+
+cron.schedule('* * * * *', () => {
+	set_qa_title_body();
+});
 
 
 const set_qa_urls = async () => {
@@ -36,7 +36,7 @@ const set_qa_urls = async () => {
 	await browser.close();
 	
 	let created_ids = await Promise.all( qa_urls.map(async (url) => {
-		let q = await Question.create({url: url}, {ignoreDuplicates: true});
+		const q = await Question.create({url: url}, {ignoreDuplicates: true});
 		return q.id;
 	}));
 	created_ids = created_ids.filter( id => id !== undefined );
@@ -48,7 +48,8 @@ const set_qa_title_body = async () => {
 		where: {
 			[Op.and]: {
 				title: null,
-				body: null
+				body: null,
+				notfoundAt: null
 			 }
 		}
 	});
@@ -73,13 +74,23 @@ const set_qa_title_body = async () => {
             request.abort();  // 外部ファイルは読み込まない
         }
     });
+    
 	await page.goto(q.url);
 	
-	let el = await page.$('h1.title.lg.blk.xl_large');
-	const title = await (await el.getProperty('textContent')).jsonValue()
+	let el = await page.$('h1');
+	const h1_404 = await (await el.getProperty('textContent')).jsonValue();
+	if (h1_404 == 'ページが見つかりません') {
+		q.notfoundAt = new Date();
+		q.changed('notfoundAt', true);
+		q.save();
+		console.log(q.url + ' not found!');
+		return false;
+	}
 	
+	el = await page.$('h1.title.lg.blk.xl_large');
+	const title = await (await el.getProperty('textContent')).jsonValue();
 	el = await page.$('p.contents');
-	const body = await (await el.getProperty('textContent')).jsonValue()
+	const body = await (await el.getProperty('textContent')).jsonValue();
 	
 	await browser.close();
 	
@@ -88,7 +99,6 @@ const set_qa_title_body = async () => {
 		q.body = body.trim();
 		q.save();
 		console.log('[set_qa_title_body] id:' + q.id + ' success.');
-
 	} else {
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
@@ -98,5 +108,5 @@ const set_qa_title_body = async () => {
 };
 
 
-set_qa_urls();
+//set_qa_urls();
 //set_qa_title_body();

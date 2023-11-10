@@ -22,7 +22,16 @@ const Question = sequelize.define('Question', {
 		type: DataTypes.TEXT
 	},
 	body: {
-	type: DataTypes.TEXT
+		type: DataTypes.TEXT
+	},
+	notfoundAt: {
+		type: DataTypes.DATE
+	},
+	postId: {
+		type: DataTypes.INTEGER
+	},
+	publishedAt: {
+		type: DataTypes.DATE
 	}
 });
 
