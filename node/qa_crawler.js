@@ -4,18 +4,19 @@ import {sequelize, Question, Op} from './config.mjs';
 
 const questions_url = 'https://okwave.jp/list/new_question';
 
-cron.schedule('*/15 * * * *', () => {
-	set_qa_urls();
-});
-
-cron.schedule('* * * * *', () => {
-	set_qa_title_body();
-});
+//cron.schedule('* * * * *', () => {
+//	set_qa_urls();
+//});
+//
+//cron.schedule('* * * * *', () => {
+//	set_qa_title_body();
+//});
 
 
 const set_qa_urls = async () => {
 	const browser = await puppeteer.launch({
-		headless: 'new'
+		headless: 'new',
+		args: ['--disable-gpu']
 	});
 	const page = await browser.newPage();
 	await page.setDefaultNavigationTimeout(0);
@@ -34,12 +35,12 @@ const set_qa_urls = async () => {
 	});
 	await browser.close();
 	
-	let qa_num = 0;
-	qa_urls.map((url) => {
-	      const question = Question.create({url: url}, {ignoreDuplicates: true});
-	      if ( question.isNewRecord ) qa_num++;
-	});
-	console.log('[set_qa_urls] set_url_num:' + qa_num);
+	let created_ids = await Promise.all( qa_urls.map(async (url) => {
+		let q = await Question.create({url: url}, {ignoreDuplicates: true});
+		return q.id;
+	}));
+	created_ids = created_ids.filter( id => id !== undefined );
+	console.log('[set_qa_urls] set_url:' + created_ids.length);
 };
 
 const set_qa_title_body = async () => {
@@ -52,10 +53,14 @@ const set_qa_title_body = async () => {
 		}
 	});
 	
-	if ( !q ) return false;
+	if ( !q ) {
+		console.log('[set_qa_title_body] no new question.');
+		return false;
+	}
 	
 	const browser = await puppeteer.launch({
-		headless: 'new'
+		headless: 'new',
+		args: ['--disable-gpu']
 	});
 	const page = await browser.newPage();
 	await page.setDefaultNavigationTimeout(0);
@@ -93,5 +98,5 @@ const set_qa_title_body = async () => {
 };
 
 
-//set_qa_urls();
+set_qa_urls();
 //set_qa_title_body();
