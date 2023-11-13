@@ -26,7 +26,12 @@ const wp_publish = async () => {
 			}
 		}
 	});
-		
+	
+	if ( !q ) {
+		console.log('[wp_publish] new question not found');
+		return false;
+	}
+	
 	const my_headers = new Headers();
 	my_headers.append("Content-Type", "application/json");
 	my_headers.append("Authorization", "Basic Zmprazp2eGRtR0IyYjVMQ3FWQzNDNTBFdGluUGk=");
