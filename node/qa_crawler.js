@@ -29,7 +29,13 @@ const set_qa_urls = async () => {
             request.abort();  // 外部ファイルは読み込まない
         }
     });
-	await page.goto(questions_url);
+    page.on('timeout', () => {
+      console.error('[set_qa_urls] timeout');
+      await page.close();
+      return false;
+    });
+    await page.goto(questions_url, { waitUntil: 'domcontentloaded'});
+
 	const qa_urls = await page.$$eval('.link_qa', list => {
 		return list.map(data => data.href);
 	});
@@ -73,10 +79,15 @@ const set_qa_title_body = async () => {
         } else {
             request.abort();  // 外部ファイルは読み込まない
         }
+    });    
+    page.on('timeout', () => {
+      console.error('[set_qa_title_body] timeout');
+      await page.close();
+      return false;
     });
-    
-	await page.goto(q.url);
-	
+
+    await page.goto(q.url, { waitUntil: 'domcontentloaded'});
+
 	let el = await page.$('h1');
 	const h1_404 = await (await el.getProperty('textContent')).jsonValue();
 	if (h1_404 == 'ページが見つかりません') {
@@ -84,6 +95,7 @@ const set_qa_title_body = async () => {
 		q.changed('notfoundAt', true);
 		q.save();
 		console.log(q.url + ' not found!');
+		await browser.close();
 		return false;
 	}
 	
