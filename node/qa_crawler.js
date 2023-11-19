@@ -31,7 +31,7 @@ const set_qa_urls = async () => {
     });
     page.on('timeout', () => {
       console.error('[set_qa_urls] timeout');
-      await page.close();
+      page.close();
       return false;
     });
     await page.goto(questions_url, { waitUntil: 'domcontentloaded'});
@@ -82,7 +82,7 @@ const set_qa_title_body = async () => {
     });    
     page.on('timeout', () => {
       console.error('[set_qa_title_body] timeout');
-      await page.close();
+      page.close();
       return false;
     });
 

@@ -32,6 +32,9 @@ const Question = sequelize.define('Question', {
 	},
 	publishedAt: {
 		type: DataTypes.DATE
+	},
+	miiboCommentedAt: {
+		type: DataTypes.DATE
 	}
 });
 
