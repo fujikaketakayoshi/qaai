@@ -33,6 +33,9 @@ const Question = sequelize.define('Question', {
 	publishedAt: {
 		type: DataTypes.DATE
 	},
+	miiboStatus: {
+		type: DataTypes.INTEGER
+	},
 	miiboCommentedAt: {
 		type: DataTypes.DATE
 	}

@@ -56,7 +56,7 @@ const wp_publish = async () => {
 	const response = await fetch(wp_url + '/?rest_route=/wp/v2/posts', request_options);
 	const data = await response.json();
 	
-	if (data.id) {
+	if (data?.id) {
 		q.postId = data.id;
 		q.publishedAt = data.date;
 		q.save();
@@ -84,7 +84,7 @@ const miibo_api_wp_comment = async () => {
 				publishedAt: {
 					[Op.ne]: null
 				},
-				miiboCommentedAt: null
+				miiboStatus: null
 			}
 		}
 	});
@@ -94,8 +94,8 @@ const miibo_api_wp_comment = async () => {
 		return false;
 	}
 	
-	const myHeaders = new Headers();
-	myHeaders.append("Content-Type", "application/json");
+	const miibo_headers = new Headers();
+	miibo_headers.append("Content-Type", "application/json");
 
 	const raw = JSON.stringify({
 		"api_key": "c0e5a26a-de4f-4c7d-a86f-1406436b90d918be18d6210211",
@@ -105,17 +105,23 @@ const miibo_api_wp_comment = async () => {
 
 	const requestOptions = {
 		method: 'POST',
-		headers: myHeaders,
+		headers: miibo_headers,
 		body: raw,
 		redirect: 'follow'
 	};
 	
 	const miibo_response = await fetch(miibo_api, requestOptions);
+	
+	if ( miibo_response.status !== 200 ) {
+		q.miiboStatus = miibo_response.status;
+		q.updatedAt = new Date();
+		q.changed('updatedAt', true);
+		q.save();
+		console.log('[miibo_api_wp_comment] id:' + q.id + ' responase not 200.');		
+	}
 	const miibo_data = await miibo_response.json();
-	
-	console.log(miibo_data.bestResponse.utterance);
-	
-	if ( !miibo_data.bestResponse.utterance ) {
+		
+	if ( ! miibo_data?.bestResponse?.utterance ) {
 		console.log('[miibo_api_wp_comment] miibo api error');
 		return false;
 	}
@@ -141,11 +147,13 @@ const miibo_api_wp_comment = async () => {
 	const wp_response = await fetch(wp_url + '/?rest_route=/wp/v2/comments', wp_request_options);
 	const wp_data = await wp_response.json();
 	
-	if ( wp_data.id ) {
+	if ( wp_data?.id ) {
+		q.miiboStatus = miibo_response.status;
 		q.miiboCommentedAt = wp_data.date;
 		q.save();
 		console.log('[miibo_api_wp_comment] id:' + q.id + ' success.');
 	} else {
+		q.miiboStatus = miibo_response.status;
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
 		q.save();
