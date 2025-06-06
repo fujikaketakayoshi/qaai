@@ -2,6 +2,10 @@ import cron from 'node-cron';
 import {sequelize, Question, Op} from './config.mjs';
 
 const wp_url = 'http://localhost/qaai/wp/';
+const wp_headers = new Headers();
+wp_headers.append("Content-Type", "application/json");
+wp_headers.append("Authorization", "Basic Zmprazp2eGRtR0IyYjVMQ3FWQzNDNTBFdGluUGk=");
+
 
 const miibo_api = 'https://api-mebo.dev/api';
 const miibo_author_name = 'miibo [GPT-3.5]';
@@ -11,7 +15,7 @@ const miibo_author_name = 'miibo [GPT-3.5]';
 //	set_qa_urls();
 //});
 cron.schedule('* * * * *', () => {
-	wp_publish();
+//	wp_publish();
 	miibo_api_wp_comment()
 });
 
@@ -35,11 +39,7 @@ const wp_publish = async () => {
 		console.log('[wp_publish] new question not found');
 		return false;
 	}
-	
-	const my_headers = new Headers();
-	my_headers.append("Content-Type", "application/json");
-	my_headers.append("Authorization", "Basic Zmprazp2eGRtR0IyYjVMQ3FWQzNDNTBFdGluUGk=");
-	
+		
 	const raw = JSON.stringify({
 		"title": q.title,
 		"content": q.body,
@@ -48,23 +48,27 @@ const wp_publish = async () => {
 	
 	const request_options = {
 		method: 'POST',
-		headers: my_headers,
+		headers: wp_headers,
 		body: raw,
 		redirect: 'follow'
 	};
 	
 	const response = await fetch(wp_url + '/?rest_route=/wp/v2/posts', request_options);
+	if (!response.ok) {
+		console.error('[wp_publish] fetch failed:', response.status);
+		return false;
+	}
 	const data = await response.json();
 	
 	if (data?.id) {
 		q.postId = data.id;
 		q.publishedAt = data.date;
-		q.save();
+		await q.save();
 		console.log('[wp_publish] id:' + q.id + ' success.');
 	} else {
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
-		q.save();
+		await q.save();
 		console.log('[wp_publish] id:' + q.id + ' fail.');
 	}
 	return false;
@@ -116,8 +120,9 @@ const miibo_api_wp_comment = async () => {
 		q.miiboStatus = miibo_response.status;
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
-		q.save();
-		console.log('[miibo_api_wp_comment] id:' + q.id + ' responase not 200.');		
+		await q.save();
+		console.log('[miibo_api_wp_comment] id:' + q.id + ' response not 200.');
+		return false;
 	}
 	const miibo_data = await miibo_response.json();
 		
@@ -126,9 +131,6 @@ const miibo_api_wp_comment = async () => {
 		return false;
 	}
 	
-	const wp_headers = new Headers();
-	wp_headers.append("Content-Type", "application/json");
-	wp_headers.append("Authorization", "Basic Zmprazp2eGRtR0IyYjVMQ3FWQzNDNTBFdGluUGk=");
 		
 	const wp_raw = JSON.stringify({
 		"post": q.postId,
@@ -150,13 +152,13 @@ const miibo_api_wp_comment = async () => {
 	if ( wp_data?.id ) {
 		q.miiboStatus = miibo_response.status;
 		q.miiboCommentedAt = wp_data.date;
-		q.save();
+		await q.save();
 		console.log('[miibo_api_wp_comment] id:' + q.id + ' success.');
 	} else {
 		q.miiboStatus = miibo_response.status;
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
-		q.save();
+		await q.save();
 		console.log('[miibo_api_wp_comment] id:' + q.id + ' fail.');
 	}
 	return false;

@@ -93,7 +93,7 @@ const set_qa_title_body = async () => {
 	if (h1_404 == 'ページが見つかりません') {
 		q.notfoundAt = new Date();
 		q.changed('notfoundAt', true);
-		q.save();
+		await q.save();
 		console.log(q.url + ' not found!');
 		await browser.close();
 		return false;
@@ -109,12 +109,12 @@ const set_qa_title_body = async () => {
 	if (title && body) {
 		q.title = title.trim();
 		q.body = body.trim();
-		q.save();
+		await q.save();
 		console.log('[set_qa_title_body] id:' + q.id + ' success.');
 	} else {
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
-		q.save();
+		await q.save();
 		console.log('[set_qa_title_body] id:' + q.id + ' fail.');
 	}
 };
