@@ -10,9 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^17.2.1",
     "mysql2": "^3.6.3",
     "node-cron": "^3.0.3",
-    "puppeteer": "^21.5.0",
+    "puppeteer": "^24.16.2",
     "sequelize": "^6.34.0"
   },
   "type": "module"

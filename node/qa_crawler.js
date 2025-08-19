@@ -5,11 +5,11 @@ import {sequelize, Question, Op} from './config.mjs';
 const questions_url = 'https://okwave.jp/list/new_question';
 
 cron.schedule('*/15 * * * *', () => {
-	set_qa_urls();
+	// set_qa_urls();
 });
 
 cron.schedule('* * * * *', () => {
-	set_qa_title_body();
+	// set_qa_title_body();
 });
 
 
@@ -30,9 +30,9 @@ const set_qa_urls = async () => {
         }
     });
     page.on('timeout', () => {
-      console.error('[set_qa_urls] timeout');
-      page.close();
-      return false;
+    	console.error('[set_qa_urls] timeout');
+    	page.close();
+    	return false;
     });
     await page.goto(questions_url, { waitUntil: 'domcontentloaded'});
 
@@ -56,7 +56,7 @@ const set_qa_title_body = async () => {
 				title: null,
 				body: null,
 				notfoundAt: null
-			 }
+			}
 		}
 	});
 	
@@ -81,9 +81,9 @@ const set_qa_title_body = async () => {
         }
     });    
     page.on('timeout', () => {
-      console.error('[set_qa_title_body] timeout');
-      page.close();
-      return false;
+		console.error('[set_qa_title_body] timeout');
+    	page.close();
+    	return false;
     });
 
     await page.goto(q.url, { waitUntil: 'domcontentloaded'});
@@ -99,7 +99,7 @@ const set_qa_title_body = async () => {
 		return false;
 	}
 	
-	el = await page.$('h1.title.lg.blk.xl_large');
+	el = await page.$('h1.a-title.a-title--lg.a-title--blk');
 	const title = await (await el.getProperty('textContent')).jsonValue();
 	el = await page.$('p.contents');
 	const body = await (await el.getProperty('textContent')).jsonValue();
@@ -119,6 +119,5 @@ const set_qa_title_body = async () => {
 	}
 };
 
-
-//set_qa_urls();
-//set_qa_title_body();
+// set_qa_urls();
+// set_qa_title_body();

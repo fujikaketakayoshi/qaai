@@ -1,22 +1,19 @@
+import 'dotenv/config';
 import cron from 'node-cron';
 import {sequelize, Question, Op} from './config.mjs';
 
-const wp_url = 'http://localhost/qaai/wp/';
+const wp_url = process.env.WP_URL;
 const wp_headers = new Headers();
 wp_headers.append("Content-Type", "application/json");
-wp_headers.append("Authorization", "Basic Zmprazp2eGRtR0IyYjVMQ3FWQzNDNTBFdGluUGk=");
+wp_headers.append("Authorization", process.env.WP_AUTH);
 
 
-const miibo_api = 'https://api-mebo.dev/api';
-const miibo_author_name = 'miibo [GPT-3.5]';
+const miibo_api = process.env.MIIBO_API;
+const miibo_author_name = process.env.MIIBO_AUTHOR_NAME;
 
-
-//cron.schedule('*/15 * * * *', () => {
-//	set_qa_urls();
-//});
 cron.schedule('* * * * *', () => {
-//	wp_publish();
-	miibo_api_wp_comment()
+	// wp_publish();
+	// miibo_api_wp_comment()
 });
 
 
@@ -102,8 +99,8 @@ const miibo_api_wp_comment = async () => {
 	miibo_headers.append("Content-Type", "application/json");
 
 	const raw = JSON.stringify({
-		"api_key": "c0e5a26a-de4f-4c7d-a86f-1406436b90d918be18d6210211",
-		"agent_id": "6e0a7d96-04b7-46cf-92ef-2a185608532b18be18c985b368",
+		"api_key": process.env.MIIBO_API_KEY,
+		"agent_id": process.env.MIIBO_AGENT_ID,
 		"utterance": q.title + 'について' + q.body
 	});
 
@@ -153,15 +150,16 @@ const miibo_api_wp_comment = async () => {
 		q.miiboStatus = miibo_response.status;
 		q.miiboCommentedAt = wp_data.date;
 		await q.save();
-		console.log('[miibo_api_wp_comment] id:' + q.id + ' success.');
+		console.log('[miibo_api_wp_comment] question_id:' + q.id + ' wp_post_id:' + wp_data.post + ' wp_comment_id:' + wp_data.id + ' success.');
 	} else {
 		q.miiboStatus = miibo_response.status;
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
 		await q.save();
-		console.log('[miibo_api_wp_comment] id:' + q.id + ' fail.');
+		console.log('[miibo_api_wp_comment] question_id:' + q.id + ' fail.');
 	}
 	return false;
 };
-//wp_publish();
-//miibo_api_wp_comment();
+
+wp_publish();
+miibo_api_wp_comment();
