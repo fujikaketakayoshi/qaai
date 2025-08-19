@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 import cron from 'node-cron';
-import {sequelize, Question, Op} from './config.mjs';
+import {sequelize, Question, Op} from './config.js';
 
 const questions_url = 'https://okwave.jp/list/new_question';
 
@@ -119,5 +119,5 @@ const set_qa_title_body = async () => {
 	}
 };
 
-// set_qa_urls();
-// set_qa_title_body();
+set_qa_urls();
+set_qa_title_body();

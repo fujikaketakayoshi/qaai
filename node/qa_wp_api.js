@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import cron from 'node-cron';
-import {sequelize, Question, Op} from './config.mjs';
+import {sequelize, Question, Op} from './config.js';
 
 const wp_url = process.env.WP_URL;
 const wp_headers = new Headers();
