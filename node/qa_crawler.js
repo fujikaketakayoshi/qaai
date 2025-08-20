@@ -1,123 +1,123 @@
 import puppeteer from 'puppeteer';
-import cron from 'node-cron';
+// import cron from 'node-cron';
 import {sequelize, Question, Op} from './config.js';
 
-const questions_url = 'https://okwave.jp/list/new_question';
-
-cron.schedule('*/15 * * * *', () => {
+// cron.schedule('*/15 * * * *', () => {
 	// set_qa_urls();
-});
+// });
 
-cron.schedule('* * * * *', () => {
+// cron.schedule('* * * * *', () => {
 	// set_qa_title_body();
-});
+// });
 
-
-const set_qa_urls = async () => {
+async function withBrowser(fn) {
 	const browser = await puppeteer.launch({
 		headless: 'new',
 		args: ['--disable-gpu']
 	});
 	const page = await browser.newPage();
-	await page.setDefaultNavigationTimeout(0);
-	await page.setRequestInterception(true);
-    page.on('request', request => {
-        const requestType = request.resourceType();
-        if(requestType === 'document') {  // 文書ファイルのみOK
-            request.continue(); // 続けて読み込む
-        } else {
-            request.abort();  // 外部ファイルは読み込まない
-        }
-    });
-    page.on('timeout', () => {
-    	console.error('[set_qa_urls] timeout');
-    	page.close();
-    	return false;
-    });
-    await page.goto(questions_url, { waitUntil: 'domcontentloaded'});
-
-	const qa_urls = await page.$$eval('.link_qa', list => {
-		return list.map(data => data.href);
-	});
-	await browser.close();
-	
-	let created_ids = await Promise.all( qa_urls.map(async (url) => {
-		const q = await Question.create({url: url}, {ignoreDuplicates: true});
-		return q.id;
-	}));
-	created_ids = created_ids.filter( id => id !== undefined );
-	console.log('[set_qa_urls] set_url:' + created_ids.length);
-};
-
-const set_qa_title_body = async () => {
-	const q = await Question.findOne({
-		where: {
-			[Op.and]: {
-				title: null,
-				body: null,
-				notfoundAt: null
+	try {
+		await page.setDefaultNavigationTimeout(0);
+		await page.setRequestInterception(true);
+		page.on('request', req => {
+			if (req.resourceType() === 'document') {
+				req.continue();
+			} else { 
+				req.abort();
 			}
-		}
-	});
-	
-	if ( !q ) {
-		console.log('[set_qa_title_body] no new question.');
-		return false;
+		});
+		return await fn(page);
+	} finally {
+		await browser.close();
 	}
-	
-	const browser = await puppeteer.launch({
-		headless: 'new',
-		args: ['--disable-gpu']
+}
+
+const scrapeOkwaveUrls = () =>
+	withBrowser(async (page) => {
+		await page.goto('https://okwave.jp/list/new_question', {waitUntil: 'domcontentloaded'});
+		return page.$$eval('.link_qa', list => list.map(a => a.href));
 	});
-	const page = await browser.newPage();
-	await page.setDefaultNavigationTimeout(0);
-	await page.setRequestInterception(true);
-    page.on('request', request => {
-        const requestType = request.resourceType();
-        if(requestType === 'document') {  // 文書ファイルのみOK
-            request.continue(); // 続けて読み込む
-        } else {
-            request.abort();  // 外部ファイルは読み込まない
-        }
-    });    
-    page.on('timeout', () => {
-		console.error('[set_qa_title_body] timeout');
-    	page.close();
-    	return false;
-    });
 
-    await page.goto(q.url, { waitUntil: 'domcontentloaded'});
+const scrapeYahooUrls = () =>
+	withBrowser(async (page) => {
+		await page.goto('https://chiebukuro.yahoo.co.jp/new/', {waitUntil: 'domcontentloaded'});
+		return page.$$eval('.SomeSelector', list => list.map(a => a.href));
+	});
 
-	let el = await page.$('h1');
-	const h1_404 = await (await el.getProperty('textContent')).jsonValue();
-	if (h1_404 == 'ページが見つかりません') {
+async function saveUrls(urls) {
+	const created = [];
+	for (const url of urls) {
+		const [q, isCreated] = await Question.findOrCreate({
+			where: { url },
+		});
+		if (isCreated) created.push(q);
+	}
+    return created;	
+}
+
+async function runJob(name, scrapeFn) {
+	try {
+		const urls = await scrapeFn();
+		const created = await saveUrls(urls);
+		console.log(`[${name}] 新規登録件数: ${created.length}`);
+	} catch (err) {
+		console.error(`[${name}] エラー:`, err);
+	}
+}
+
+runJob('OKWAVE', scrapeOkwaveUrls);
+
+
+
+const scrapeQuestionDetail = (q) => 
+	withBrowser(async (page) => {
+    await page.goto(q.url, { waitUntil: 'domcontentloaded' });
+
+    // 404チェック
+    const notFound = await page.$eval('h1', el => el.textContent.trim());
+    if (notFound === 'ページが見つかりません') {
 		q.notfoundAt = new Date();
 		q.changed('notfoundAt', true);
 		await q.save();
-		console.log(q.url + ' not found!');
-		await browser.close();
-		return false;
+		console.log(`${q.url} not found!`);
+		return null;
+    }
+
+    // タイトルと本文を取得
+    const title = await page.$eval('h1.a-title.a-title--lg.a-title--blk', el => el.textContent.trim());
+    const body  = await page.$eval('p.contents', el => el.textContent.trim());
+
+    return { title, body };
+});
+
+const setQaTitleBody = async () => {
+	const q = await Question.findOne({
+		where: {
+			[Op.and]: { title: null, body: null, notfoundAt: null }
+		}
+	});
+
+	if (!q) {
+		console.log('[setQaTitleBody] no new question.');
+		return;
 	}
-	
-	el = await page.$('h1.a-title.a-title--lg.a-title--blk');
-	const title = await (await el.getProperty('textContent')).jsonValue();
-	el = await page.$('p.contents');
-	const body = await (await el.getProperty('textContent')).jsonValue();
-	
-	await browser.close();
-	
+
+	const detail = await scrapeQuestionDetail(q);
+	if (!detail) return;
+
+	const { title, body } = detail;
 	if (title && body) {
-		q.title = title.trim();
-		q.body = body.trim();
+		q.title = title;
+		q.body  = body;
 		await q.save();
-		console.log('[set_qa_title_body] id:' + q.id + ' success.');
+		console.log(`[setQaTitleBody] id:${q.id} success.`);
 	} else {
 		q.updatedAt = new Date();
 		q.changed('updatedAt', true);
 		await q.save();
-		console.log('[set_qa_title_body] id:' + q.id + ' fail.');
+		console.log(`[setQaTitleBody] id:${q.id} fail.`);
 	}
 };
 
-set_qa_urls();
-set_qa_title_body();
+setQaTitleBody();
+
