@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",                   // 出力するJSのバージョン
+    "module": "ESNext",                   // import/exportをそのまま
+    "moduleResolution": "Node",           // Node.jsスタイルの解決
+    "outDir": "dist",                     // 出力先
+    "rootDir": "src",                     // ソースコード置き場
+    "strict": true,                       // 厳密チェック
+    "esModuleInterop": true,              // import互換性
+    "skipLibCheck": true,                 // 型定義の細かいエラー無視
+    "forceConsistentCasingInFileNames": true,
+    "allowImportingTsExtensions": true,    // .ts拡張子をインポートできるようにする
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
