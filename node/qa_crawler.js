@@ -38,12 +38,6 @@ const scrapeOkwaveUrls = () =>
 		return page.$$eval('.link_qa', list => list.map(a => a.href));
 	});
 
-const scrapeYahooUrls = () =>
-	withBrowser(async (page) => {
-		await page.goto('https://chiebukuro.yahoo.co.jp/new/', {waitUntil: 'domcontentloaded'});
-		return page.$$eval('.SomeSelector', list => list.map(a => a.href));
-	});
-
 async function saveUrls(urls) {
 	const created = [];
 	for (const url of urls) {
