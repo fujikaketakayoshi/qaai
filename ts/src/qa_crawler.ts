@@ -1,5 +1,8 @@
 import puppeteer, { Page } from "puppeteer";
-import {sequelize, Question, Op} from './config.ts';
+import {prisma} from './config.ts';
+
+type QuestionType = NonNullable<Awaited<ReturnType<typeof prisma.question.findFirst>>>;
+
 
 async function withBrowser<T>(fn: (page: Page) => Promise<T>): Promise<T> {
 	const browser = await puppeteer.launch({
@@ -32,10 +35,10 @@ const scrapeOkwaveUrls = () =>
 async function saveUrls(urls: string[]) {
 	const created = [];
 	for (const url of urls) {
-		const [q, isCreated] = await Question.findOrCreate({
-			where: { url },
-		});
-		if (isCreated) created.push(q);
+		const existing = await prisma.question.findUnique({ where: { url } });
+		if (existing) continue;
+		const q = await prisma.question.create({ data: { url } });
+		created.push(q);
 	}
     return created;	
 }
@@ -54,13 +57,14 @@ runJob('OKWAVE', scrapeOkwaveUrls);
 
 
 
-const scrapeQuestionDetail = (q: Question) => 
+const scrapeQuestionDetail = (q: QuestionType) => 
 	withBrowser(async (page) => {
     await page.goto(q.url, { waitUntil: 'domcontentloaded' });
 
     // 404チェック
     const notFound = await page.$eval('h1', el => el.textContent.trim());
     if (notFound === 'ページが見つかりません') {
+
 		q.notfoundAt = new Date();
 		q.changed('notfoundAt', true);
 		await q.save();
@@ -76,13 +80,11 @@ const scrapeQuestionDetail = (q: Question) =>
 });
 
 const setQaTitleBody = async () => {
-	const q = await Question.findOne({
+	const q = await prisma.question.findFirst({
 		where: {
-			[Op.and]: [
-				{ title: null }, 
-				{ body: null }, 
-				{ notfoundAt: null }
-			]
+			title: { not: null },
+			body: { not: null },
+			publishedAt: null
 		}
 	});
 
@@ -100,16 +102,25 @@ const setQaTitleBody = async () => {
 
 	const { title, body } = detail;
 	if (title && body) {
-		q.title = title;
-		q.body  = body;
-		await q.save();
+		const updated = await prisma.question.update({
+			where: { id: q.id },
+			data: {
+				title: title,
+				body: body
+			}
+		});
 		console.log(`[setQaTitleBody] id:${q.id} success.`);
 	} else {
-		q.title = null;
-		await q.save();
+		const updated = await prisma.question.update({
+			where: { id: q.id },
+			data: {
+				updatedAt: new Date()
+			}
+		});
 		console.log(`[setQaTitleBody] id:${q.id} fail.`);
 	}
 };
 
 setQaTitleBody();
 
+await prisma.$disconnect();

@@ -1,6 +1,5 @@
-// import 'dotenv/config';
-import cron from 'node-cron';
-import {sequelize, Question, Op} from './config.ts';
+// import cron from 'node-cron';
+import {prisma} from './config.ts';
 
 const wp_url = process.env.WP_URL;
 const wp_headers = new Headers();
@@ -18,10 +17,10 @@ const miibo_author_name = process.env.MIIBO_AUTHOR_NAME;
 
 
 const wp_publish = async () => {
-	const q = await Question.findOne({
+	const q = await prisma.question.findFirst({
 		where: {
-			title: {[Op.ne]: null},
-			body: {[Op.ne]: null},
+			title: { not: null },
+			body: { not: null },
 			publishedAt: null
 		}
 	});
@@ -52,13 +51,21 @@ const wp_publish = async () => {
 	const data = await response.json();
 	
 	if (data?.id) {
-		q.postId = data.id;
-		q.publishedAt = data.date;
-		await q.save();
+			const updated = await prisma.question.update({
+			where: { id: q.id },
+			data: {
+				postId: data.id,
+				publishedAt: new Date(data.date)
+			}
+		});
 		console.log('[wp_publish] id:' + q.id + ' success.');
 	} else {
-		q.set('updatedAt', new Date());
-		await q.save();
+		const updated = await prisma.question.update({
+			where: { id: q.id },
+			data: {
+				updatedAt: new Date()
+			}
+		});
 		console.log('[wp_publish] id:' + q.id + ' fail.');
 	}
 	return false;
@@ -66,20 +73,12 @@ const wp_publish = async () => {
 
 
 const miibo_api_wp_comment = async () => {
-	const q = await Question.findOne({
+	const q = await prisma.question.findFirst({
 		where: {
-			[Op.and]: {
-				title: {
-					[Op.ne]: null
-				},
-				body: {
-					[Op.ne]: null
-				},
-				publishedAt: {
-					[Op.ne]: null
-				},
-				miiboStatus: null
-			}
+			title: { not: null },
+			body: { not: null },
+			publishedAt: { not: null },
+			miiboStatus: null
 		}
 	});
 	
@@ -107,9 +106,12 @@ const miibo_api_wp_comment = async () => {
 	const miibo_response = await fetch(miibo_api, requestOptions);
 	
 	if ( miibo_response.status !== 200 ) {
-		q.miiboStatus = miibo_response.status;
-		q.set('updatedAt', new Date());
-		await q.save();
+		const updated = await prisma.question.update({
+			where: { id: q.id },
+			data: {
+				miiboStatus: miibo_response.status
+			}
+		});
 		console.log('[miibo_api_wp_comment] id:' + q.id + ' response not 200.');
 		return false;
 	}
@@ -139,14 +141,21 @@ const miibo_api_wp_comment = async () => {
 	const wp_data = await wp_response.json();
 	
 	if ( wp_data?.id ) {
-		q.miiboStatus = miibo_response.status;
-		q.miiboCommentedAt = wp_data.date;
-		await q.save();
+		const updated = await prisma.question.update({
+			where: { id: q.id },
+			data: {
+				miiboStatus: miibo_response.status,
+				miiboCommentedAt: new Date(wp_data.date)
+			}
+		});
 		console.log('[miibo_api_wp_comment] question_id:' + q.id + ' wp_post_id:' + wp_data.post + ' wp_comment_id:' + wp_data.id + ' success.');
 	} else {
-		q.miiboStatus = miibo_response.status;
-		q.set('updatedAt', new Date());
-		await q.save();
+		const updated = await prisma.question.update({
+			where: { id: q.id },
+			data: {
+				miiboStatus: miibo_response.status
+			}
+		});
 		console.log('[miibo_api_wp_comment] question_id:' + q.id + ' fail.');
 	}
 	return false;
@@ -154,3 +163,5 @@ const miibo_api_wp_comment = async () => {
 
 wp_publish();
 miibo_api_wp_comment();
+
+await prisma.$disconnect();
