@@ -14,10 +14,10 @@ interface QuestionAttributes {
 	title?: string | null;
 	body?: string | null;
 	notfoundAt?: Date | null;
-	postId?: number;
-	publishedAt?: Date;
-	miiboStatus?: number;
-	miiboCommentedAt?: Date;
+	postId?: number | null;
+	publishedAt?: Date | null;
+	miiboStatus?: number | null;
+	miiboCommentedAt?: Date | null;
 	createdAt?: Date; // timestamps 自動付与
 	updatedAt?: Date;
 }
@@ -32,10 +32,10 @@ class Question extends Model<QuestionAttributes, QuestionCreationAttributes>
 	declare title?: string | null;
 	declare body?: string | null;
 	declare notfoundAt?: Date | null;
-	declare postId?: number;
-	declare publishedAt?: Date;
-	declare miiboStatus?: number;
-	declare miiboCommentedAt?: Date;
+	declare postId?: number | null;
+	declare publishedAt?: Date | null;
+	declare miiboStatus?: number | null;
+	declare miiboCommentedAt?: Date | null;
 	declare readonly createdAt: Date;
 	declare readonly updatedAt: Date;
 }
@@ -59,19 +59,40 @@ Question.init(
 			type: DataTypes.INTEGER.UNSIGNED,
 			autoIncrement: true,
 			primaryKey: true,
-	    },
-		url: {
-		type: DataTypes.STRING,
-		allowNull: false,
-		unique: true,
 		},
-		title: DataTypes.TEXT,
-		body: DataTypes.TEXT,
-		notfoundAt: DataTypes.DATE,
-		postId: DataTypes.INTEGER,
-		publishedAt: DataTypes.DATE,
-		miiboStatus: DataTypes.INTEGER,
-		miiboCommentedAt: DataTypes.DATE,
+		url: {
+			type: DataTypes.STRING,
+			allowNull: false,
+			unique: true,
+		},
+		title: {
+			type: DataTypes.TEXT,
+			allowNull: true
+		},
+		body: {
+			type: DataTypes.TEXT,
+			allowNull: true
+		},
+		notfoundAt: {
+			type: DataTypes.DATE,
+			allowNull: true
+		},
+		postId: {
+			type: DataTypes.INTEGER,
+			allowNull: true
+		},
+		publishedAt: {
+			type: DataTypes.DATE,
+			allowNull: true
+		},
+		miiboStatus: {
+			type: DataTypes.INTEGER,
+			allowNull: true
+		},
+		miiboCommentedAt: {
+			type: DataTypes.DATE,
+			allowNull: true
+		}
 	},
 	{
 		sequelize,
