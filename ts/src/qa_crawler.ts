@@ -1,8 +1,6 @@
 import puppeteer, { Page } from "puppeteer";
 import {prisma} from './config.ts';
 
-type QuestionType = NonNullable<Awaited<ReturnType<typeof prisma.question.findFirst>>>;
-
 
 async function withBrowser<T>(fn: (page: Page) => Promise<T>): Promise<T> {
 	const browser = await puppeteer.launch({
@@ -57,18 +55,20 @@ runJob('OKWAVE', scrapeOkwaveUrls);
 
 
 
-const scrapeQuestionDetail = (q: QuestionType) => 
+const scrapeQuestionDetail = (q_id: number, q_url:string) => 
 	withBrowser(async (page) => {
-    await page.goto(q.url, { waitUntil: 'domcontentloaded' });
+    await page.goto(q_url, { waitUntil: 'domcontentloaded' });
 
     // 404チェック
     const notFound = await page.$eval('h1', el => el.textContent.trim());
     if (notFound === 'ページが見つかりません') {
-
-		q.notfoundAt = new Date();
-		q.changed('notfoundAt', true);
-		await q.save();
-		console.log(`${q.url} not found!`);
+		const updated = await prisma.question.update({
+			where: { id: q_id },
+			data: {
+				notfoundAt: new Date()
+			}
+		});
+		console.log(`${q_url} not found!`);
 		return null;
     }
 
@@ -97,7 +97,7 @@ const setQaTitleBody = async () => {
         return;
     }
 
-	const detail = await scrapeQuestionDetail(q);
+	const detail = await scrapeQuestionDetail(q.id, q.url);
 	if (!detail) return;
 
 	const { title, body } = detail;
