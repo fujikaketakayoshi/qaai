@@ -17,6 +17,12 @@ model Question {
   publishedAt      DateTime? @db.DateTime(0)
   miiboStatus      Int?
   miiboCommentedAt DateTime? @db.DateTime(0)
+  title_summary_llama3_1_8b String? @db.Text
+  body_summary_llama3_1_8b  String? @db.Text
+  title_summary_phi4_14b String? @db.Text
+  body_summary_phi4_14b  String? @db.Text
+  title_summary_qwen3_8b String? @db.Text
+  body_summary_qwen3_8b  String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
