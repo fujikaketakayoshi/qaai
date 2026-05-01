@@ -12,6 +12,7 @@ model Question {
   url              String    @unique(map: "url") @db.VarChar(255)
   title            String?   @db.Text
   body             String?   @db.Text
+  bodyLength Int?
   notfoundAt       DateTime? @db.DateTime(0)
   postId           Int?
   publishedAt      DateTime? @db.DateTime(0)
