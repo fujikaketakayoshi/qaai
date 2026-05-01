@@ -106,7 +106,8 @@ const setQaTitleBody = async () => {
 			where: { id: q.id },
 			data: {
 				title: title,
-				body: body
+				body: body,
+				bodyLength: body.length
 			}
 		});
 		console.log(`[setQaTitleBody] id:${q.id} success.`);

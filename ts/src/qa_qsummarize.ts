@@ -90,9 +90,14 @@ async function main() {
         [titleField]: null,
         [bodyField]: null
       },
-      orderBy: {
-        id: "asc"
-      }
+      orderBy: [
+        // {
+        //   bodyLength: "desc"
+        // },
+        {
+          id: "asc"
+        }
+      ]
     });
 
     if (!q) {
