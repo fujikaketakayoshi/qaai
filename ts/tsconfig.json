@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",                   // 出力するJSのバージョン
-    "module": "ESNext",                   // import/exportをそのまま
-    "moduleResolution": "Node",           // Node.jsスタイルの解決
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "dist",                     // 出力先
     "rootDir": "src",                     // ソースコード置き場
     "strict": true,                       // 厳密チェック
