@@ -1,11 +1,11 @@
 import cron from 'node-cron';
 import { prisma } from './config.ts';
-import { runJob, scrapeOkwaveUrls, setQaTitleBody } from './jobs.ts';
+import { runJob, scrapeOkwaveUrls, setQaTitleBodyFiltering } from './jobs.ts';
 
 // 毎分：詳細取得
 cron.schedule('* * * * *', async () => {
-	console.log('[cron] setQaTitleBody start');
-	await setQaTitleBody();
+	console.log('[cron] setQaTitleBodyFiltering start');
+	await setQaTitleBodyFiltering();
 });
 
 // 15分に1回：URL収集

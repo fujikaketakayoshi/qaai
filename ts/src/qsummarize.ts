@@ -87,6 +87,7 @@ async function main() {
       where: {
         title: { not: null },
         body: { not: null },
+        filtering: false,
         [titleField]: null,
         [bodyField]: null
       },

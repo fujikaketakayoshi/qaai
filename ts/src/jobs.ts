@@ -1,5 +1,6 @@
 import puppeteer, { Page } from "puppeteer";
 import { prisma } from './config.ts';
+import { isFiltered } from "./filter.js";
 
 /* =========================
    Browser helper
@@ -84,12 +85,11 @@ const scrapeQuestionDetail = (q_id: number, q_url: string) =>
 /* =========================
    Set title/body
 ========================= */
-export async function setQaTitleBody() {
+export async function setQaTitleBodyFiltering() {
 	const q = await prisma.question.findFirst({
 		where: {
 			title: null,
 			body: null,
-			publishedAt: null,
             notfoundAt: null
 		}
 	});
@@ -99,11 +99,17 @@ export async function setQaTitleBody() {
 	const detail = await scrapeQuestionDetail(q.id, q.url);
 	if (!detail) return;
 
+	const filtering = isFiltered(
+		detail.title,
+		detail.body
+	);
+
 	await prisma.question.update({
 		where: { id: q.id },
 		data: {
 			title: detail.title,
-			body: detail.body
+			body: detail.body,
+			filtering
 		}
 	});
 
