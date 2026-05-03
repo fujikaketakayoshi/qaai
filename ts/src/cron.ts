@@ -3,7 +3,7 @@ import { prisma } from './config.ts';
 import { runJob, scrapeOkwaveUrls, setQaTitleBodyFiltering } from './jobs.ts';
 
 // 15分に1回：URL収集
-cron.schedule('*/15 * * * *', async () => {
+cron.schedule('*/10 * * * *', async () => {
 	console.log('[cron] runJob start');
 	await runJob('OKWAVE', scrapeOkwaveUrls);
 });
