@@ -5,13 +5,6 @@ type LlmResponse = {
   body_summary: string;
 };
 
-async function getCurrentModel(): Promise<string> {
-  const res = await fetch("http://127.0.0.1:8080/v1/models");
-  const json = await res.json();
-
-  return json.data[0].id;
-}
-
 async function summarizeByLlm(
   title: string,
   body: string,
@@ -23,7 +16,7 @@ async function summarizeByLlm(
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model, // 現在サーバに載ってるモデル名
+      model,
       messages: [
         {
           role: "system",
@@ -74,71 +67,52 @@ function modelToColumnSuffix(model: string): string {
   return model.replace(/\.gguf$/, "");
 }
 
-async function main() {
-  const model = await getCurrentModel();
+export async function summarizeOneQuestion(model: string) {
   console.log(`[LLM] using model: ${model}`);
 
   const suffix = modelToColumnSuffix(model);
+
   const titleField = `title_summary_${suffix}`;
   const bodyField = `body_summary_${suffix}`;
 
-  while (true) {
-    const q = await prisma.question.findFirst({
-      where: {
-        title: { not: null },
-        body: { not: null },
-        filtering: false,
-        [titleField]: null,
-        [bodyField]: null
-      },
-      orderBy: [
-        // {
-        //   bodyLength: "desc"
-        // },
-        {
-          id: "asc"
-        }
-      ]
+  const q = await prisma.question.findFirst({
+    where: {
+      title: { not: null },
+      body: { not: null },
+      filtering: false,
+      publishedAt: null,
+      [titleField]: null,
+      [bodyField]: null
+    },
+    orderBy: {
+      id: "asc"
+    }
+  });
+
+  if (!q) {
+    console.log(`[${model}] 未要約データなし`);
+    return;
+  }
+
+  console.log(`processing id: ${q.id}`);
+
+  try {
+    const result = await summarizeByLlm(
+      q.title!,
+      q.body!,
+      model
+    );
+
+    await prisma.question.update({
+      where: { id: q.id },
+      data: {
+        [titleField]: result.title_summary,
+        [bodyField]: result.body_summary
+      }
     });
 
-    if (!q) {
-      console.log(`[${model}] 未要約データなし。終了`);
-      break;
-    }
-
-    console.log(`processing id: ${q.id}`);
-
-    try {
-      const result = await summarizeByLlm(
-        q.title!,
-        q.body!,
-        model
-      );
-
-      await prisma.question.update({
-        where: { id: q.id },
-        data: {
-          [titleField]: result.title_summary,
-          [bodyField]: result.body_summary
-        }
-      });
-
-      console.log(`summarized: ${q.id}`);
-    } catch (err) {
-      console.error(`error on id: ${q.id}`, err);
-
-      // 無限ループ防止（失敗したやつをスキップする）
-      await prisma.question.update({
-        where: { id: q.id },
-        data: {
-          updatedAt: new Date()
-        }
-      });
-    }
+    console.log(`summarized: ${q.id}`);
+  } catch (err) {
+    console.error(`error on id: ${q.id}`, err);
   }
 }
-main()
-  .catch(console.error)
-  .finally(async () => {
-    await prisma.$disconnect();
-  });

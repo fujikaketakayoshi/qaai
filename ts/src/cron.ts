@@ -14,6 +14,23 @@ cron.schedule('* * * * *', async () => {
 	await setQaTitleBodyFiltering();
 });
 
+// 毎分：要約パイプライン
+let running = false;
+cron.schedule('* * * * *', async () => {
+	if (running) {
+		console.log('skip: already running');
+		return;
+	}
+
+	running = true;
+
+	try {
+		await runPublishPipeline();
+	} finally {
+		running = false;
+	}
+});
+
 // プロセス終了時にDB切断
 process.on('SIGINT', async () => {
 	console.log('SIGINT received. Disconnecting Prisma...');
