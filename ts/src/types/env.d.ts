@@ -1,6 +1,9 @@
 declare namespace NodeJS {
-    interface ProcessEnv {
-        WP_AUTH: string;
-        MIIBO_API: string;
-    }
+  interface ProcessEnv {
+    DATABASE_URL: string;
+
+    WORDPRESS_URL: string;
+    WORDPRESS_USER: string;
+    WORDPRESS_APP_PASSWORD: string;
+  }
 }
