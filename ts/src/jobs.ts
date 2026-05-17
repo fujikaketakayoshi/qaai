@@ -2,6 +2,8 @@ import puppeteer, { Page } from "puppeteer";
 import { prisma } from './config.ts';
 import { isFiltered } from "./filter.js";
 import { summarizeOneQuestion } from "./q_summarize.ts";
+import { generateAnswerByLlm } from "./a_generate.ts";
+import { publishCommentToWordPress } from "./a_publishComment.ts";
 import { wpHeaders, wpUrl } from "./wp.ts";
 
 /* =========================
@@ -175,7 +177,8 @@ export async function publishQuestionSummary(model: string) {
   const raw = JSON.stringify({
     title,
     content: body,
-    status: "publish"
+    status: "publish",
+	comment_status: "open",
   });
 
   const response = await fetch(
@@ -219,14 +222,72 @@ export async function publishQuestionSummary(model: string) {
   }
 }
 
-async function publishAnswerArticle() {
+async function publishAnswerArticle(model: string) {
 	console.log("[pipeline] publishAnswerArticle");
 
-	// TODO:
-	// 1. Qデータ取得
-	// 2. A生成
-	// 3. WordPress投稿
-	// 4. answerPublishedAt更新
+	// 1. 未回答Question取得（同一modelのAnswerが無いもの）
+	const question = await prisma.question.findFirst({
+		where: {
+			postId: {
+				not: null,
+			},
+			publishedAt: {
+				not: null,
+			},
+			answers: {
+				none: {
+					llmModel: model,
+				},
+			},
+		},
+		orderBy: {
+			id: "asc",
+		},
+	});
+	if (!question) {
+		console.log("[pipeline] no unanswered question");
+		return;
+	}
+
+	// 3. 要約済みQからAnswer生成
+	const titleSummary = question.title_summary_qwen3_8b;
+	const bodySummary = question.body_summary_qwen3_8b;
+
+	const answerBody = await generateAnswerByLlm(
+		titleSummary ?? "",
+		bodySummary ?? "",
+		model
+	);
+	console.log("[ANSWER]" + answerBody);
+	// 4. Answers作成
+	const answer = await prisma.answer.create({
+		data: {
+			qId: question.id,
+			llmModel: model,
+			body: answerBody,
+		},
+	});
+	console.log(`[pipeline] answer created id=${answer.id}`);
+
+	// 5. WordPressコメント投稿
+	const wpComment = await publishCommentToWordPress(
+		question.postId!,
+		answerBody,
+		model
+	);
+	console.log(`[pipeline] wp comment published id=${wpComment.id}`);
+
+	// 6. wpCommentId/publishedAt更新
+	await prisma.answer.update({
+		where: {
+			id: answer.id,
+		},
+		data: {
+			wpCommentId: wpComment.id,
+			publishedAt: new Date(),
+		},
+	});
+
 }
 
 export async function runPublishPipeline() {
@@ -241,11 +302,10 @@ export async function runPublishPipeline() {
 			console.log("[pipeline] qwen mode");
 			await summarizeOneQuestion(model);
 			await publishQuestionSummary(model);
-			// await publishAnswerArticle();
+			await publishAnswerArticle(model);
 		} else {
 			console.log("[pipeline] answer-only mode");
-
-			// await publishAnswerArticle();
+			await publishAnswerArticle(model);
 		}
 
 		console.log("[pipeline] done");

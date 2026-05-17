@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { prisma } from './config.ts';
-import { runJob, scrapeOkwaveUrls, setQaTitleBodyFiltering } from './jobs.ts';
+import { runJob, scrapeOkwaveUrls, setQaTitleBodyFiltering, runPublishPipeline } from './jobs.ts';
 
 // 15分に1回：URL収集
 cron.schedule('*/10 * * * *', async () => {

@@ -27,8 +27,33 @@ model Question {
   title_summary_qwen3_8b String? @db.Text
   body_summary_qwen3_8b  String? @db.Text
 
+  answers          Answer[]
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("Questions")
+}
+
+model Answer {
+  id           Int       @id @default(autoincrement())
+
+  qId          Int
+  question     Question  @relation(fields: [qId], references: [id])
+
+  llmModel     String    @db.VarChar(100)
+
+  body         String?   @db.Text
+
+  wpCommentId  Int?
+
+  publishedAt  DateTime? @db.DateTime(0)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([qId, llmModel])
+  @@index([qId])
+
+  @@map("Answers")
 }
